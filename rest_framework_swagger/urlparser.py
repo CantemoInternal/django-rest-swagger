@@ -14,7 +14,7 @@ from .apidocview import APIDocView
 
 class UrlParser(object):
 
-    def get_apis(self, patterns=None, urlconf=None, filter_path=None, exclude_namespaces=[]):
+    def get_apis(self, patterns=None, urlconf=None, filter_path=None, exclude_namespaces=[], include_namespaces=[]):
         """
         Returns all the DRF APIViews found in the project URLs
 
@@ -35,6 +35,7 @@ class UrlParser(object):
             patterns,
             filter_path=filter_path,
             exclude_namespaces=exclude_namespaces,
+            include_namespaces=include_namespaces,
         )
         if filter_path is not None:
             return self.get_filtered_apis(apis, filter_path)
@@ -123,7 +124,7 @@ class UrlParser(object):
             'callback': callback,
         }
 
-    def __flatten_patterns_tree__(self, patterns, prefix='', filter_path=None, exclude_namespaces=[]):
+    def __flatten_patterns_tree__(self, patterns, prefix='', namespace_prefix=None, filter_path=None, exclude_namespaces=[], include_namespaces=[]):
         """
         Uses recursion to flatten url tree.
 
@@ -131,7 +132,6 @@ class UrlParser(object):
         prefix -- (optional) Prefix for URL pattern
         """
         pattern_list = []
-
         for pattern in patterns:
             if isinstance(pattern, RegexURLPattern):
                 endpoint_data = self.__assemble_endpoint_data__(pattern, prefix, filter_path=filter_path)
@@ -142,16 +142,29 @@ class UrlParser(object):
                 pattern_list.append(endpoint_data)
 
             elif isinstance(pattern, RegexURLResolver):
-
-                if pattern.namespace is not None and pattern.namespace in exclude_namespaces:
-                    continue
-
                 pref = prefix + pattern.regex.pattern
+                ns_comps = []
+                if namespace_prefix:
+                    ns_comps.append(namespace_prefix)
+                if pattern.namespace:
+                    ns_comps.append(pattern.namespace)
+                ns_pref = ":".join(ns_comps)
+
+                if include_namespaces:
+                    if pattern.namespace is None or not any(map(lambda x: re.match(x, ns_pref), include_namespaces)):
+                        continue
+
+                if pattern.namespace is not None:
+                    if any(map(lambda x: re.match(x, ns_pref), exclude_namespaces)):
+                        continue
+
                 pattern_list.extend(self.__flatten_patterns_tree__(
                     pattern.url_patterns,
                     pref,
+                    namespace_prefix=ns_pref,
                     filter_path=filter_path,
                     exclude_namespaces=exclude_namespaces,
+                    include_namespaces=include_namespaces,
                 ))
 
         return pattern_list

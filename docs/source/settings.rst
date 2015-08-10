@@ -83,6 +83,13 @@ The methods that can be interacted with in the UI
 
 Default: :code:`['get', 'post', 'put', 'patch', 'delete']`
 
+include_namespaces
+------------------------
+
+list URL namespaces to show
+
+Default: :code:`[]`
+
 exclude_namespaces
 ------------------------
 

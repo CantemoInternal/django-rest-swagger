@@ -138,6 +138,7 @@ class SwaggerResourcesView(APIDocView):
         urlconf = getattr(self.request, "urlconf", None)
         apis = urlparser.get_apis(
             urlconf=urlconf,
+            include_namespaces=rfs.SWAGGER_SETTINGS.get('include_namespaces'),
             exclude_namespaces=rfs.SWAGGER_SETTINGS.get('exclude_namespaces'))
         resources = urlparser.get_top_level_apis(apis)
         return resources
